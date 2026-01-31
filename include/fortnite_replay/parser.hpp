@@ -8,6 +8,7 @@
 
 #include "kaitai/kaitaistruct.h"
 #include "kaitai/kaitaistream.h"
+#include "fortnite_replay/replay.hpp"
 
 class fortnite_replay_t;
 
@@ -27,6 +28,7 @@ namespace fortnite_replay
 
         bool parse(const std::string &filepath);
 
+        // Info header
         std::string magic() const;
         uint32_t file_version() const;
         uint32_t length_in_ms() const;
@@ -36,6 +38,9 @@ namespace fortnite_replay
         bool is_live() const;
         uint64_t timestamp() const;
         bool is_compressed() const;
+
+        // Get the parsed replay as a well-formatted model
+        Replay replay();
 
         bool is_valid() const { return m_replay != nullptr; }
 
