@@ -1,0 +1,178 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        build_type: [Debug, Release]
+        include:
+          - os: ubuntu-latest
+            compiler: gcc
+            cxx_compiler: g++
+          - os: macos-latest
+            compiler: clang
+            cxx_compiler: clang++
+          - os: windows-latest
+            compiler: msvc
+            cxx_compiler: cl
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up CMake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.25.x'
+
+      - name: Install dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libgtest-dev ninja-build
+          # Build and install GTest
+          cd /usr/src/gtest
+          sudo cmake CMakeLists.txt
+          sudo make
+          sudo cp lib/*.a /usr/lib
+          sudo ln -sf /usr/lib/libgtest.a /usr/local/lib/libgtest.a
+          sudo ln -sf /usr/lib/libgtest_main.a /usr/local/lib/libgtest_main.a
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install cmake ninja googletest
+
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install ninja -y
+          git clone https://github.com/google/googletest.git
+          cd googletest
+          cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX=C:/googletest -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          cmake --build build --config ${{ matrix.build_type }}
+          cmake --install build --config ${{ matrix.build_type }}
+
+      - name: Configure CMake (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cmake -B build -S . \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx_compiler }} \
+            -G Ninja
+
+      - name: Configure CMake (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cmake -B build -S . `
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
+            -DCMAKE_PREFIX_PATH=C:/googletest `
+            -G Ninja
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }} --parallel
+
+      - name: Test
+        run: |
+          cd build
+          ctest --build-config ${{ matrix.build_type }} --output-on-failure --parallel
+
+      - name: Build example
+        run: cmake --build build --target replay_viewer --config ${{ matrix.build_type }}
+
+  code-coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libgtest-dev lcov ninja-build
+          # Build and install GTest
+          cd /usr/src/gtest
+          sudo cmake CMakeLists.txt
+          sudo make
+          sudo cp lib/*.a /usr/lib
+          sudo ln -sf /usr/lib/libgtest.a /usr/local/lib/libgtest.a
+          sudo ln -sf /usr/lib/libgtest_main.a /usr/local/lib/libgtest_main.a
+
+      - name: Configure CMake with coverage
+        run: |
+          cmake -B build -S . \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="--coverage" \
+            -DCMAKE_C_FLAGS="--coverage" \
+            -G Ninja
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Run tests
+        run: |
+          cd build
+          ctest --output-on-failure
+
+      - name: Generate coverage report
+        run: |
+          lcov --directory build --capture --output-file coverage.info --ignore-errors mismatch,inconsistent
+          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/build/_deps/*' --output-file coverage.info --ignore-errors unused
+          lcov --list coverage.info
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.info
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  static-analysis:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tidy cppcheck
+
+      - name: Run cppcheck
+        run: |
+          cppcheck --enable=all --suppress=missingIncludeSystem \
+            --error-exitcode=0 \
+            -I include \
+            src/*.cpp
+
+  formatting-check:
+    name: Code Formatting Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+
+      - name: Check formatting
+        run: |
+          find include src examples -name '*.cpp' -o -name '*.hpp' | \
+            xargs clang-format --dry-run --Werror || true

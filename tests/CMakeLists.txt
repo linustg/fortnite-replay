@@ -10,9 +10,12 @@ target_link_libraries(fortnite_replay_tests
         fortnite_replay
         GTest::gtest
         GTest::gtest_main
-        GTest::gmock
 )
 
 # Add tests to CTest
 include(GoogleTest)
-gtest_discover_tests(fortnite_replay_tests)
+gtest_discover_tests(fortnite_replay_tests
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    PROPERTIES
+        ENVIRONMENT "GTEST_COLOR=1"
+)
