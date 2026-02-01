@@ -1,9 +1,12 @@
 #include "fortnite_replay/event.hpp"
 #include "fortnite_replay/parser.hpp"
 #include "fortnite_replay/replay.hpp"
+#include "test_utils.cpp"
+
 #include <gtest/gtest.h>
 
 using namespace fortnite_replay;
+using namespace test_utils;
 
 class ReplayModelTest : public ::testing::Test {
 protected:
@@ -193,15 +196,15 @@ TEST(ReplayTest, InfoAccessors) {
 
 TEST(ReplayTest, AddHeaderChunk) {
   Replay replay;
-  EXPECT_EQ(replay.header_chunk(), nullptr);
+  EXPECT_EQ(replay.header().get(), nullptr);
 
   auto &header = replay.add_chunk<HeaderChunk>();
   header.network_version = 19;
   header.network_checksum = 12345;
 
-  EXPECT_NE(replay.header_chunk(), nullptr);
-  EXPECT_EQ(replay.header_chunk()->network_version, 19);
-  EXPECT_EQ(replay.header_chunk()->network_checksum, 12345);
+  EXPECT_NE(replay.header().get(), nullptr);
+  EXPECT_EQ(replay.header().get()->network_version, 19);
+  EXPECT_EQ(replay.header().get()->network_checksum, 12345);
   EXPECT_EQ(replay.chunk_count(), 1);
 }
 
@@ -224,7 +227,7 @@ TEST(ReplayTest, AddDataChunks) {
   EXPECT_EQ(replay.frame_count(), 2);
   EXPECT_EQ(replay.chunk_count(), 2);
 
-  auto data_chunks = replay.data_chunks();
+  auto data_chunks = replay.data().all();
   EXPECT_EQ(data_chunks.size(), 2);
   EXPECT_EQ(data_chunks[0]->start_time_ms, 0);
   EXPECT_EQ(data_chunks[0]->end_time_ms, 1000);
@@ -243,7 +246,7 @@ TEST(ReplayTest, AddCheckpointChunks) {
 
   EXPECT_EQ(replay.checkpoint_count(), 1);
 
-  auto checkpoints = replay.checkpoint_chunks();
+  auto checkpoints = replay.checkpoints().all();
   EXPECT_EQ(checkpoints.size(), 1);
   EXPECT_EQ(checkpoints[0]->id, "checkpoint_1");
   EXPECT_EQ(checkpoints[0]->group, "PlayerState");
@@ -262,7 +265,7 @@ TEST(ReplayTest, AddEventChunks) {
 
   EXPECT_EQ(replay.event_count(), 1);
 
-  auto events = replay.event_chunks();
+  auto events = replay.events().all();
   EXPECT_EQ(events.size(), 1);
   EXPECT_EQ(events[0]->id, "kill_1");
   EXPECT_EQ(events[0]->event_type, EventType::PlayerElimination);
@@ -284,10 +287,10 @@ TEST(ReplayTest, MixedChunkTypes) {
   EXPECT_EQ(replay.frame_count(), 3);
   EXPECT_EQ(replay.checkpoint_count(), 1);
   EXPECT_EQ(replay.event_count(), 2);
-  EXPECT_NE(replay.header_chunk(), nullptr);
+  EXPECT_NE(replay.header().get(), nullptr);
 }
 
-TEST(ReplayTest, ChunksOfType) {
+TEST(ReplayTest, StoreAccessors) {
   Replay replay;
 
   replay.add_chunk<HeaderChunk>();
@@ -295,40 +298,38 @@ TEST(ReplayTest, ChunksOfType) {
   replay.add_chunk<Event>();
   replay.add_chunk<DataChunk>();
 
-  auto headers = replay.chunks_of_type<HeaderChunk>();
-  auto data = replay.chunks_of_type<DataChunk>();
-  auto events = replay.chunks_of_type<Event>();
-  auto checkpoints = replay.chunks_of_type<CheckpointChunk>();
-
-  EXPECT_EQ(headers.size(), 1);
-  EXPECT_EQ(data.size(), 2);
-  EXPECT_EQ(events.size(), 1);
-  EXPECT_EQ(checkpoints.size(), 0);
+  // Use store APIs to access chunks by type
+  EXPECT_TRUE(replay.header().exists());
+  EXPECT_EQ(replay.data().count(), 2);
+  EXPECT_EQ(replay.events().count(), 1);
+  EXPECT_EQ(replay.checkpoints().count(), 0);
 }
 
-TEST(ReplayTest, BackwardCompatibleHeader) {
+TEST(ReplayTest, HeaderStoreAccess) {
   Replay replay;
-  EXPECT_FALSE(replay.header().has_value());
+  EXPECT_FALSE(replay.header().exists());
 
   auto &header = replay.add_chunk<HeaderChunk>();
   header.network_version = 19;
 
-  // Backward-compatible accessor returns a copy
-  auto optional_header = replay.header();
-  EXPECT_TRUE(optional_header.has_value());
-  EXPECT_EQ(optional_header->network_version, 19);
+  // Header store provides access to header chunk
+  auto header_store = replay.header();
+  EXPECT_TRUE(header_store.exists());
+  EXPECT_EQ(header_store.networkVersion().value(), 19);
 }
 
-TEST(ReplayTest, BackwardCompatibleDataFrames) {
+TEST(ReplayTest, DataStoreAccess) {
   Replay replay;
 
   auto &frame = replay.add_chunk<DataChunk>();
   frame.start_time_ms = 100;
 
-  // Backward-compatible accessor returns copies
-  auto frames = replay.data_frames();
+  // Data store provides access to data chunks
+  auto data_store = replay.data();
+  EXPECT_EQ(data_store.count(), 1);
+  auto frames = data_store.all();
   EXPECT_EQ(frames.size(), 1);
-  EXPECT_EQ(frames[0].start_time_ms, 100);
+  EXPECT_EQ(frames[0]->start_time_ms, 100);
 }
 
 TEST(ReplayTest, ConstAccessors) {
@@ -341,9 +342,9 @@ TEST(ReplayTest, ConstAccessors) {
   const Replay &const_replay = replay;
   EXPECT_EQ(const_replay.info().friendly_name, "Const Test");
   EXPECT_EQ(const_replay.chunks().size(), 3);
-  EXPECT_EQ(const_replay.data_chunks().size(), 1);
-  EXPECT_EQ(const_replay.checkpoint_chunks().size(), 1);
-  EXPECT_EQ(const_replay.event_chunks().size(), 1);
+  EXPECT_EQ(const_replay.data().all().size(), 1);
+  EXPECT_EQ(const_replay.checkpoints().all().size(), 1);
+  EXPECT_EQ(const_replay.events().all().size(), 1);
 }
 
 // ============================================================================
@@ -494,6 +495,9 @@ TEST(HeaderChunkTest, WithLevels) {
 // ============================================================================
 
 TEST_F(ReplayModelTest, ParseAndGetReplay) {
+  if (is_ci_environment()) {
+    GTEST_SKIP() << "Skipping Oodle test - oo2core library not available in CI";
+  }
   FortniteReplayParser parser;
   if (!parser.parse(TEST_REPLAY_PATH)) {
     GTEST_SKIP() << "Test replay file not available";
@@ -510,6 +514,9 @@ TEST_F(ReplayModelTest, ParseAndGetReplay) {
 }
 
 TEST_F(ReplayModelTest, ReplayHeader) {
+  if (is_ci_environment()) {
+    GTEST_SKIP() << "Skipping Oodle test - oo2core library not available in CI";
+  }
   FortniteReplayParser parser;
   if (!parser.parse(TEST_REPLAY_PATH)) {
     GTEST_SKIP() << "Test replay file not available";
@@ -518,14 +525,17 @@ TEST_F(ReplayModelTest, ReplayHeader) {
   Replay replay = parser.replay();
 
   // Header should be present
-  EXPECT_NE(replay.header_chunk(), nullptr);
-  if (auto *header = replay.header_chunk()) {
+  EXPECT_NE(replay.header().get(), nullptr);
+  if (auto *header = replay.header().get()) {
     EXPECT_GT(header->network_version, 0u);
     EXPECT_GT(header->engine_network_version, 0u);
   }
 }
 
 TEST_F(ReplayModelTest, ReplayContainsChunks) {
+  if (is_ci_environment()) {
+    GTEST_SKIP() << "Skipping Oodle test - oo2core library not available in CI";
+  }
   FortniteReplayParser parser;
   if (!parser.parse(TEST_REPLAY_PATH)) {
     GTEST_SKIP() << "Test replay file not available";
@@ -539,6 +549,9 @@ TEST_F(ReplayModelTest, ReplayContainsChunks) {
 }
 
 TEST_F(ReplayModelTest, ReplayEventsAndCheckpoints) {
+  if (is_ci_environment()) {
+    GTEST_SKIP() << "Skipping Oodle test - oo2core library not available in CI";
+  }
   FortniteReplayParser parser;
   if (!parser.parse(TEST_REPLAY_PATH)) {
     GTEST_SKIP() << "Test replay file not available";
@@ -548,11 +561,11 @@ TEST_F(ReplayModelTest, ReplayEventsAndCheckpoints) {
 
   // Events and checkpoints may or may not be present depending on replay
   // Just verify we can access them without crashing
-  for (auto *event : replay.event_chunks()) {
+  for (auto *event : replay.events().all()) {
     EXPECT_GE(event->start_time_ms, 0u);
   }
 
-  for (auto *checkpoint : replay.checkpoint_chunks()) {
+  for (auto *checkpoint : replay.checkpoints().all()) {
     EXPECT_GE(checkpoint->start_time_ms, 0u);
   }
 }
@@ -569,5 +582,5 @@ TEST_F(ReplayModelTest, EmptyParserReturnsEmptyReplay) {
   EXPECT_EQ(replay.frame_count(), 0);
   EXPECT_EQ(replay.checkpoint_count(), 0);
   EXPECT_EQ(replay.event_count(), 0);
-  EXPECT_EQ(replay.header_chunk(), nullptr);
+  EXPECT_EQ(replay.header().get(), nullptr);
 }

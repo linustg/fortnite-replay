@@ -1,18 +1,13 @@
 #include "fortnite_replay/crypto.hpp"
+#include "test_utils.cpp"
+
 #include <gtest/gtest.h>
 
 #include <array>
 #include <cstdlib>
 
 using namespace fortnite_replay;
-
-// Helper function to check if we're running in CI environment
-inline bool is_ci_environment() {
-  const char *ci_env = std::getenv("CI");
-  const char *skip_oodle = std::getenv("SKIP_OODLE_TESTS");
-  return (ci_env != nullptr && std::string(ci_env) == "true") ||
-         (skip_oodle != nullptr && std::string(skip_oodle) == "true");
-}
+using namespace test_utils;
 
 // ============================================================================
 // CryptoError Tests

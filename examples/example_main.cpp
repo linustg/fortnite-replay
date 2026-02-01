@@ -81,7 +81,7 @@ void print_replay_info(const Replay& replay)
 
 void print_header_info(const Replay& replay)
 {
-    auto* header = replay.header_chunk();
+    auto* header = replay.header().get();
     if (!header)
     {
         return;
@@ -149,7 +149,7 @@ void print_statistics(const Replay& replay)
 
 void print_data_frames_summary(const Replay& replay)
 {
-    auto data_chunks = replay.data_chunks();
+    auto data_chunks = replay.data().all();
     if (data_chunks.empty())
     {
         return;
@@ -190,7 +190,7 @@ void print_data_frames_summary(const Replay& replay)
 
 void print_checkpoints(const Replay& replay)
 {
-    auto checkpoints = replay.checkpoint_chunks();
+    auto checkpoints = replay.checkpoints().all();
     if (checkpoints.empty())
     {
         return;
@@ -218,7 +218,7 @@ void print_checkpoints(const Replay& replay)
 
 void print_events(const Replay& replay)
 {
-    auto events = replay.event_chunks();
+    auto events = replay.events().all();
     if (events.empty())
     {
         return;

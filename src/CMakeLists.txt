@@ -4,6 +4,10 @@ set(LIB_SOURCES
     event_parser.cpp
     parser.cpp
     replay.cpp
+    stores/checkpoint_store.cpp
+    stores/data_store.cpp
+    stores/event_store.cpp
+    stores/header_store.cpp
     ${CMAKE_SOURCE_DIR}/generated/fortnite_replay.cpp
 )
 

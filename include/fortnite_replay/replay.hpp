@@ -13,6 +13,12 @@
 #include "event.hpp"
 #include "header_chunk.hpp"
 
+// Store classes
+#include "stores/checkpoint_store.hpp"
+#include "stores/data_store.hpp"
+#include "stores/event_store.hpp"
+#include "stores/header_store.hpp"
+
 namespace fortnite_replay {
 
 /**
@@ -66,42 +72,29 @@ public:
     return ref;
   }
 
-  /**
-   * Get chunks of a specific type
-   */
-  template <typename T> std::vector<T *> chunks_of_type() const {
-    std::vector<T *> result;
-    for (const auto &chunk : m_chunks) {
-      if (auto *typed = dynamic_cast<T *>(chunk.get())) {
-        result.push_back(typed);
-      }
-    }
-    return result;
-  }
-
   // ====================================================================
-  // Typed chunk accessors (convenience methods)
+  // Store accessors
   // ====================================================================
 
   /**
-   * Get the header chunk (first one found, or nullptr)
+   * Get event store for accessing event chunks
    */
-  HeaderChunk *header_chunk() const;
+  EventStore events() const { return EventStore(this); }
 
   /**
-   * Get all data chunks
+   * Get header store for accessing header information
    */
-  std::vector<DataChunk *> data_chunks() const;
+  HeaderStore header() const { return HeaderStore(this); }
 
   /**
-   * Get all checkpoint chunks
+   * Get data store for accessing data chunks (frames)
    */
-  std::vector<CheckpointChunk *> checkpoint_chunks() const;
+  DataStore data() const { return DataStore(this); }
 
   /**
-   * Get all event chunks
+   * Get checkpoint store for accessing checkpoint chunks
    */
-  std::vector<Event *> event_chunks() const;
+  CheckpointStore checkpoints() const { return CheckpointStore(this); }
 
   // ====================================================================
   // ReplayInfo accessors
@@ -109,30 +102,6 @@ public:
 
   const ReplayInfo &info() const { return m_info; }
   ReplayInfo &info() { return m_info; }
-
-  // ====================================================================
-  // Backward-compatible accessors
-  // ====================================================================
-
-  /**
-   * @deprecated Use header_chunk() instead
-   */
-  std::optional<HeaderChunk> header() const;
-
-  /**
-   * @deprecated Use data_chunks() instead
-   */
-  std::vector<DataChunk> data_frames() const;
-
-  /**
-   * @deprecated Use checkpoint_chunks() instead
-   */
-  std::vector<CheckpointChunk> checkpoints() const;
-
-  /**
-   * @deprecated Use event_chunks() instead
-   */
-  std::vector<Event> events() const;
 
   // ====================================================================
   // Convenience accessors
@@ -149,11 +118,35 @@ public:
   // ====================================================================
 
   size_t chunk_count() const { return m_chunks.size(); }
-  size_t frame_count() const { return data_chunks().size(); }
-  size_t checkpoint_count() const { return checkpoint_chunks().size(); }
-  size_t event_count() const { return event_chunks().size(); }
+  size_t frame_count() const { return data().count(); }
+  size_t checkpoint_count() const { return checkpoints().count(); }
+  size_t event_count() const { return events().count(); }
 
 private:
+  // Friend declarations for store classes to access internal methods
+  friend class EventStore;
+  friend class HeaderStore;
+  friend class DataStore;
+  friend class CheckpointStore;
+
+  /**
+   * Internal method used by stores to get chunks of a specific type
+   */
+  template <typename T> std::vector<T *> chunks_of_type() const {
+    std::vector<T *> result;
+    for (const auto &chunk : m_chunks) {
+      if (auto *typed = dynamic_cast<T *>(chunk.get())) {
+        result.push_back(typed);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Internal method used by HeaderStore to get the header chunk
+   */
+  HeaderChunk *header_chunk() const;
+
   ReplayInfo m_info;
   std::vector<std::unique_ptr<Chunk>> m_chunks;
 };
