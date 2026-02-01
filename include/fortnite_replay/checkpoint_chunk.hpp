@@ -8,38 +8,36 @@
 #include <string>
 #include <vector>
 
-namespace fortnite_replay
-{
+namespace fortnite_replay {
 
-    /**
-     * Checkpoint chunk for fast-forwarding through replay
-     */
-    class CheckpointChunk : public Chunk
-    {
-    public:
-        CheckpointChunk() = default;
+/**
+ * Checkpoint chunk for fast-forwarding through replay
+ */
+class CheckpointChunk : public Chunk {
+public:
+  CheckpointChunk() = default;
 
-        ChunkType type() const override { return ChunkType::Checkpoint; }
-        const char *type_name() const override { return "Checkpoint"; }
+  ChunkType type() const override { return ChunkType::Checkpoint; }
+  const char *type_name() const override { return "Checkpoint"; }
 
-        std::string id;
-        std::string group;
-        std::string metadata;
-        uint32_t start_time_ms = 0;
-        uint32_t end_time_ms = 0;
-        std::vector<uint8_t> data; // Raw checkpoint data (may be encrypted/compressed)
+  std::string id;
+  std::string group;
+  std::string metadata;
+  uint32_t start_time_ms = 0;
+  uint32_t end_time_ms = 0;
+  std::vector<uint8_t>
+      data; // Raw checkpoint data (may be encrypted/compressed)
 
-        /**
-         * Get duration of this checkpoint in milliseconds
-         */
-        uint32_t duration_ms() const
-        {
-            return end_time_ms > start_time_ms ? end_time_ms - start_time_ms : 0;
-        }
-    };
+  /**
+   * Get duration of this checkpoint in milliseconds
+   */
+  uint32_t duration_ms() const {
+    return end_time_ms > start_time_ms ? end_time_ms - start_time_ms : 0;
+  }
+};
 
-    // Type alias for backward compatibility
-    using Checkpoint = CheckpointChunk;
+// Type alias for backward compatibility
+using Checkpoint = CheckpointChunk;
 
 } // namespace fortnite_replay
 
