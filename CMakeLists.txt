@@ -6,6 +6,21 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# RPATH settings for finding shared libraries at runtime
+set(CMAKE_SKIP_BUILD_RPATH OFF)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH OFF)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
+if(APPLE)
+    set(CMAKE_MACOSX_RPATH ON)
+    # Use @loader_path for finding libraries relative to the executable
+    set(CMAKE_BUILD_RPATH "@loader_path/../src;@loader_path")
+    set(CMAKE_INSTALL_RPATH "@loader_path/../lib")
+elseif(UNIX)
+    # Linux: use $ORIGIN for relative RPATH
+    set(CMAKE_BUILD_RPATH "$ORIGIN/../src;$ORIGIN")
+    set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
+endif()
+
 # On Windows, put all DLLs and executables in the same directory
 if(WIN32)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -45,6 +60,8 @@ FetchContent_Declare(
     GIT_TAG        master
 )
 
+# Disable tests for kaitai dependency
+set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(kaitai_struct_cpp_stl_runtime)
 
 # Add compiler warnings

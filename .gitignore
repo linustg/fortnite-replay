@@ -4,3 +4,6 @@ build/
 
 # AI assistants
 .claude/
+
+# CMake generated files
+cmake_test_discovery_*.json
