@@ -1,5 +1,7 @@
 build/
 
+.cache/
+
 .vscode/
 
 # AI assistants
