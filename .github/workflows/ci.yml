@@ -86,6 +86,8 @@ jobs:
         run: cmake --build build --config ${{ matrix.build_type }} --parallel
 
       - name: Test
+        env:
+          CI: true
         run: |
           cd build
           ctest --build-config ${{ matrix.build_type }} --output-on-failure --parallel
@@ -124,6 +126,8 @@ jobs:
         run: cmake --build build --parallel
 
       - name: Run tests
+        env:
+          CI: true
         run: |
           cd build
           ctest --output-on-failure

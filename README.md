@@ -28,7 +28,14 @@ A modern C++23 library for parsing Fortnite replay files (`.replay`). This libra
 
 - C++23 compatible compiler (GCC 11+, Clang 14+, MSVC 2022+)
 - CMake 3.25 or higher (required for C++23 support)
+- OpenSSL (for AES decryption)
+- zlib (for compression support)
 - Google Test (for running tests)
+- **oo2core library** (optional, for Oodle decompression support)
+  - Required for decompressing Oodle-compressed replay data
+  - Proprietary library not included in this repository
+  - Must be available on your system for full functionality
+  - Tests requiring oo2core are automatically skipped in CI environments
 
 ### Building
 
@@ -437,6 +444,9 @@ ctest --output-on-failure
 
 # Run tests with verbose output
 ctest -V
+
+# Skip Oodle-dependent tests (if oo2core library is not available)
+SKIP_OODLE_TESTS=true ctest --output-on-failure
 ```
 
 Test coverage includes:
@@ -444,7 +454,10 @@ Test coverage includes:
 - Replay model classes
 - Chunk types and accessors
 - Data structures (EngineVersion, ReplayInfo, etc.)
+- Cryptography (AES decryption, Oodle decompression)
 - Edge cases and error handling
+
+**Note:** Tests requiring the oo2core library are automatically skipped when running in CI environments (when `CI=true` or `SKIP_OODLE_TESTS=true`). These tests will run locally if you have the oo2core library installed on your system.
 
 ## CI/CD
 

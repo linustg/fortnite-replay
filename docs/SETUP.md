@@ -157,9 +157,18 @@ To enable all CI features, configure these secrets in your GitHub repository set
 ### Prerequisites
 
 - C++23 compatible compiler (GCC 11+, Clang 14+, MSVC 2022+)
-- CMake 3.20+
+- CMake 3.25+
 - Git
-- Google Test (auto-fetched)
+- OpenSSL (for AES decryption)
+- zlib (for compression support)
+- Google Test (auto-fetched by CMake)
+- **oo2core library** (optional, for Oodle decompression)
+  - Required for processing Oodle-compressed replay data
+  - Proprietary library from RAD Game Tools
+  - Not included in this repository (licensing restrictions)
+  - Must be installed separately on your system
+  - The library should be in a system-searchable location
+  - Tests requiring oo2core automatically skip in CI environments
 
 ### Build and Test
 
@@ -175,9 +184,31 @@ cd fortnite-replay
 cd build
 ctest --output-on-failure
 
+# Run tests without oo2core-dependent tests
+SKIP_OODLE_TESTS=true ctest --output-on-failure
+
 # Build documentation
 # (Add Doxygen setup if needed)
 ```
+
+### About oo2core Library
+
+The oo2core library is used for Oodle decompression, which is a proprietary compression format used by Fortnite replays.
+
+**Why it's not included:**
+- Proprietary software from RAD Game Tools
+
+**Getting oo2core:**
+- The library is typically available with Unreal Engine installations
+- It may also be found in game installations that use Oodle compression (e.g., Fortnite)
+- Common locations:
+  - Windows: `oo2core_9_win64.dll`
+  - Linux: `liboo2core.so` or `oo2core_9_linux.so`
+  - macOS: `liboo2core.dylib`
+
+**Working without oo2core:**
+- Tests requiring oo2core will be automatically skipped
+- You can use the `SKIP_OODLE_TESTS=true` environment variable to explicitly skip these tests
 
 ## Project Structure
 
