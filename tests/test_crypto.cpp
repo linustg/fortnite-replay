@@ -210,52 +210,6 @@ TEST_F(AesDecryptorTest, MoveAssignment)
 }
 
 // ============================================================================
-// ZlibDecompressor Tests
-// ============================================================================
-
-class ZlibDecompressorTest : public ::testing::Test
-{
-protected:
-    ZlibDecompressor decompressor;
-};
-
-TEST_F(ZlibDecompressorTest, IsAvailable)
-{
-    EXPECT_TRUE(decompressor.is_available());
-}
-
-TEST_F(ZlibDecompressorTest, Name)
-{
-    EXPECT_STREQ(decompressor.name(), "zlib");
-}
-
-TEST_F(ZlibDecompressorTest, DecompressEmptyData)
-{
-    std::vector<uint8_t> empty;
-    auto result = decompressor.decompress(empty, 0);
-    EXPECT_FALSE(result.has_value());
-    EXPECT_EQ(result.error(), CryptoError::InvalidCompressedData);
-}
-
-TEST_F(ZlibDecompressorTest, DecompressInvalidData)
-{
-    std::vector<uint8_t> garbage = {0x00, 0x01, 0x02, 0x03};
-    auto result = decompressor.decompress(garbage, 100);
-    EXPECT_FALSE(result.has_value());
-    EXPECT_EQ(result.error(), CryptoError::DecompressionFailed);
-}
-
-TEST_F(ZlibDecompressorTest, OutputBufferTooSmall)
-{
-    std::vector<uint8_t> data = {0x78, 0x9c, 0x03, 0x00, 0x00, 0x00, 0x00, 0x01};
-    std::vector<uint8_t> output(1); // Too small
-
-    auto result = decompressor.decompress_to(data, output, 100);
-    EXPECT_FALSE(result.has_value());
-    EXPECT_EQ(result.error(), CryptoError::OutputBufferTooSmall);
-}
-
-// ============================================================================
 // OodleDecompressor Tests
 // ============================================================================
 
@@ -399,11 +353,10 @@ TEST_F(ReplayDataProcessorTest, ProcessEncryptedWithKey)
 
 TEST_F(ReplayDataProcessorTest, SetCustomDecompressor)
 {
-    auto zlib = std::make_unique<ZlibDecompressor>();
-    processor.set_decompressor(std::move(zlib));
+    auto oodle = std::make_unique<OodleDecompressor>();
+    processor.set_decompressor(std::move(oodle));
 
-    EXPECT_STREQ(processor.decompressor_name(), "zlib");
-    EXPECT_TRUE(processor.has_decompressor());
+    EXPECT_STREQ(processor.decompressor_name(), "Oodle");
 }
 
 TEST_F(ReplayDataProcessorTest, MoveConstruction)

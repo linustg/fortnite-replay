@@ -127,13 +127,12 @@ namespace fortnite_replay
     // ============================================================================
 
     /**
-     * Abstract base class for decompressors
-     *
-     * Fortnite uses Oodle compression for replay data. Since Oodle is proprietary,
-     * this provides an abstraction layer that supports multiple implementations:
-     * - OodleDecompressor: Uses the Oodle DLL from Fortnite installation
-     * - ZlibDecompressor: Fallback for testing or older replay formats
-     */
+ * Abstract base class for decompressors
+ *
+ * Fortnite/UE replays use Oodle compression for replay data. Since Oodle is proprietary,
+ * this provides an abstraction layer. The OodleDecompressor uses the Oodle library
+ * from a Fortnite installation or other source.
+ */
     class Decompressor
     {
     public:
@@ -207,41 +206,19 @@ namespace fortnite_replay
             std::span<uint8_t> output,
             size_t decompressed_size) override;
 
-        /**
-         * Get the path to the loaded library, or empty if not loaded
-         */
-        std::string library_path() const;
-
-    private:
-        struct Impl;
-        std::unique_ptr<Impl> m_impl;
-    };
-
     /**
-     * Zlib decompressor for testing or older replay formats
+     * Get the path to the loaded library, or empty if not loaded
      */
-    class ZlibDecompressor : public Decompressor
-    {
-    public:
-        ZlibDecompressor() = default;
-        ~ZlibDecompressor() override = default;
+    std::string library_path() const;
 
-        const char *name() const override { return "zlib"; }
-        bool is_available() const override;
+private:
+    struct Impl;
+    std::unique_ptr<Impl> m_impl;
+};
 
-        CryptoResult<std::vector<uint8_t>> decompress(
-            std::span<const uint8_t> compressed_data,
-            size_t decompressed_size) override;
-
-        CryptoResult<size_t> decompress_to(
-            std::span<const uint8_t> compressed_data,
-            std::span<uint8_t> output,
-            size_t decompressed_size) override;
-    };
-
-    // ============================================================================
-    // High-Level Replay Data Processing
-    // ============================================================================
+// ============================================================================
+// High-Level Replay Data Processing
+// ============================================================================
 
     /**
      * Combined decryption and decompression for replay chunk data

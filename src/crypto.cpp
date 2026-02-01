@@ -1,13 +1,15 @@
 #include "fortnite_replay/crypto.hpp"
 
+#include <algorithm>
 #include <cstring>
+#include <filesystem>
 
 // OpenSSL for AES decryption
 #include <openssl/evp.h>
 #include <openssl/err.h>
 
-// zlib for fallback decompression
-#include <zlib.h>
+// zlib for fallback decompression (keeping include for potential future use)
+// #include <zlib.h>
 
 // Platform-specific dynamic library loading
 #ifdef _WIN32
@@ -239,26 +241,38 @@ namespace fortnite_replay
         bool load_library(const std::string &path)
         {
 #ifdef _WIN32
-            library = LoadLibraryA(path.c_str());
-            if (library)
+            HMODULE lib = LoadLibraryA(path.c_str());
+            if (!lib)
             {
-                decompress_func = reinterpret_cast<OodleLZ_Decompress_Func>(
-                    GetProcAddress(library, "OodleLZ_Decompress"));
+                return false;
             }
+            auto func = reinterpret_cast<OodleLZ_Decompress_Func>(
+                GetProcAddress(lib, "OodleLZ_Decompress"));
+            if (!func)
+            {
+                FreeLibrary(lib);
+                return false;
+            }
+            library = lib;
+            decompress_func = func;
 #else
-            library = dlopen(path.c_str(), RTLD_NOW);
-            if (library)
+            void *lib = dlopen(path.c_str(), RTLD_NOW);
+            if (!lib)
             {
-                decompress_func = reinterpret_cast<OodleLZ_Decompress_Func>(
-                    dlsym(library, "OodleLZ_Decompress"));
+                return false;
             }
+            auto func = reinterpret_cast<OodleLZ_Decompress_Func>(
+                dlsym(lib, "OodleLZ_Decompress"));
+            if (!func)
+            {
+                dlclose(lib);
+                return false;
+            }
+            library = lib;
+            decompress_func = func;
 #endif
-            if (decompress_func)
-            {
-                loaded_path = path;
-                return true;
-            }
-            return false;
+            loaded_path = path;
+            return true;
         }
 
         std::vector<std::string> get_search_paths() const
@@ -272,8 +286,10 @@ namespace fortnite_replay
             paths.push_back("C:\\Program Files (x86)\\Epic Games\\Fortnite\\FortniteGame\\Binaries\\Win64\\oo2core_9_win64.dll");
 #elif __APPLE__
             // macOS paths
-            paths.push_back("liboo2coredarwin64.dylib");
-            paths.push_back("/Applications/Fortnite/FortniteGame/Binaries/Mac/liboo2coredarwin64.dylib");
+            // paths.push_back("liboo2coredarwin64.dylib");
+            // paths.push_back("./liboo2coredarwin64.dylib");
+            paths.push_back("/usr/local/lib/liboo2coredarwin64.dylib");
+            // paths.push_back("/opt/homebrew/lib/liboo2coredarwin64.dylib");
 #else
             // Linux paths
             paths.push_back("liboo2corelinux64.so");
@@ -353,6 +369,16 @@ namespace fortnite_replay
             return std::unexpected(CryptoError::InvalidCompressedData);
         }
 
+        // Debug: Print first bytes of compressed data to understand format
+        fprintf(stderr, "Oodle decompress: compressed_size=%zu, decompressed_size=%zu\n",
+                compressed_data.size(), decompressed_size);
+        fprintf(stderr, "First 16 bytes: ");
+        for (size_t i = 0; i < std::min(compressed_data.size(), size_t(16)); i++)
+        {
+            fprintf(stderr, "%02x ", compressed_data[i]);
+        }
+        fprintf(stderr, "\n");
+
         int64_t result = m_impl->decompress_func(
             compressed_data.data(),
             static_cast<int64_t>(compressed_data.size()),
@@ -370,96 +396,14 @@ namespace fortnite_replay
             0        // threadPhase
         );
 
+        fprintf(stderr, "Oodle result: %lld\n", result);
+
         if (result <= 0)
         {
             return std::unexpected(CryptoError::DecompressionFailed);
         }
 
         return static_cast<size_t>(result);
-    }
-
-    // ============================================================================
-    // ZlibDecompressor Implementation
-    // ============================================================================
-
-    bool ZlibDecompressor::is_available() const
-    {
-        return true; // zlib is always available when linked
-    }
-
-    CryptoResult<std::vector<uint8_t>> ZlibDecompressor::decompress(
-        std::span<const uint8_t> compressed_data,
-        size_t decompressed_size)
-    {
-        std::vector<uint8_t> output(decompressed_size);
-        auto result = decompress_to(compressed_data, output, decompressed_size);
-        if (!result)
-        {
-            return std::unexpected(result.error());
-        }
-        output.resize(*result);
-        return output;
-    }
-
-    CryptoResult<size_t> ZlibDecompressor::decompress_to(
-        std::span<const uint8_t> compressed_data,
-        std::span<uint8_t> output,
-        size_t decompressed_size)
-    {
-        if (output.size() < decompressed_size)
-        {
-            return std::unexpected(CryptoError::OutputBufferTooSmall);
-        }
-
-        if (compressed_data.empty())
-        {
-            return std::unexpected(CryptoError::InvalidCompressedData);
-        }
-
-        z_stream stream{};
-        stream.next_in = const_cast<Bytef *>(compressed_data.data());
-        stream.avail_in = static_cast<uInt>(compressed_data.size());
-        stream.next_out = output.data();
-        stream.avail_out = static_cast<uInt>(output.size());
-
-        // Initialize for raw deflate (no zlib/gzip header)
-        int ret = inflateInit2(&stream, -MAX_WBITS);
-        if (ret != Z_OK)
-        {
-            // Try with zlib header
-            ret = inflateInit(&stream);
-            if (ret != Z_OK)
-            {
-                return std::unexpected(CryptoError::DecompressionFailed);
-            }
-        }
-
-        ret = inflate(&stream, Z_FINISH);
-        inflateEnd(&stream);
-
-        if (ret != Z_STREAM_END)
-        {
-            // Maybe it's not raw deflate, try with zlib header
-            stream = z_stream{};
-            stream.next_in = const_cast<Bytef *>(compressed_data.data());
-            stream.avail_in = static_cast<uInt>(compressed_data.size());
-            stream.next_out = output.data();
-            stream.avail_out = static_cast<uInt>(output.size());
-
-            ret = inflateInit(&stream);
-            if (ret == Z_OK)
-            {
-                ret = inflate(&stream, Z_FINISH);
-                inflateEnd(&stream);
-            }
-
-            if (ret != Z_STREAM_END)
-            {
-                return std::unexpected(CryptoError::DecompressionFailed);
-            }
-        }
-
-        return stream.total_out;
     }
 
     // ============================================================================
@@ -473,16 +417,8 @@ namespace fortnite_replay
 
         Impl()
         {
-            // Try Oodle first, fall back to zlib
-            auto oodle = std::make_unique<OodleDecompressor>();
-            if (oodle->is_available())
-            {
-                decompressor = std::move(oodle);
-            }
-            else
-            {
-                decompressor = std::make_unique<ZlibDecompressor>();
-            }
+            // Only use Oodle - it's required for UE replay decompression
+            decompressor = std::make_unique<OodleDecompressor>();
         }
     };
 
@@ -539,16 +475,37 @@ namespace fortnite_replay
             return std::vector<uint8_t>{};
         }
 
+        fprintf(stderr, "ReplayDataProcessor::process: data_size=%zu, is_encrypted=%d, is_compressed=%d, decompressed_size=%zu\n",
+                data.size(), is_encrypted, is_compressed, decompressed_size);
+
         std::vector<uint8_t> working_data(data.begin(), data.end());
 
         // Step 1: Decrypt if needed
         if (is_encrypted)
         {
+            fprintf(stderr, "Decrypting data...\n");
+            fprintf(stderr, "Has key: %d\n", m_impl->decryptor.has_key());
+            
+            // Print key for debugging (first few bytes only)
+            fprintf(stderr, "Input data first 16 bytes: ");
+            for (size_t i = 0; i < std::min(working_data.size(), size_t(16)); i++)
+            {
+                fprintf(stderr, "%02x ", working_data[i]);
+            }
+            fprintf(stderr, "\n");
+            
             auto decrypt_result = m_impl->decryptor.decrypt_inplace(working_data);
             if (!decrypt_result)
             {
+                fprintf(stderr, "Decryption failed with error!\n");
                 return std::unexpected(decrypt_result.error());
             }
+            fprintf(stderr, "After decryption, first 16 bytes: ");
+            for (size_t i = 0; i < std::min(working_data.size(), size_t(16)); i++)
+            {
+                fprintf(stderr, "%02x ", working_data[i]);
+            }
+            fprintf(stderr, "\n");
         }
 
         // Step 2: Decompress if needed
@@ -570,6 +527,9 @@ namespace fortnite_replay
 
                 auto [decomp_size, comp_size, offset] = *header_result;
                 decompressed_size = decomp_size;
+
+                fprintf(stderr, "Parsed header: decomp_size=%u, comp_size=%u, offset=%zu\n",
+                        decomp_size, comp_size, offset);
 
                 // Extract just the compressed data
                 std::span<const uint8_t> compressed_portion(
