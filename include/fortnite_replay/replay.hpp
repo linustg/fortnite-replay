@@ -10,7 +10,7 @@
 #include "checkpoint_chunk.hpp"
 #include "chunk.hpp"
 #include "data_chunk.hpp"
-#include "event_chunk.hpp"
+#include "event.hpp"
 #include "header_chunk.hpp"
 
 namespace fortnite_replay {

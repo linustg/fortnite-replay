@@ -1,4 +1,4 @@
-#include "fortnite_replay/event_chunk.hpp"
+#include "fortnite_replay/event.hpp"
 #include "fortnite_replay/parser.hpp"
 #include "fortnite_replay/replay.hpp"
 #include <gtest/gtest.h>

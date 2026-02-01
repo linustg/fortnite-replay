@@ -1,7 +1,7 @@
 #ifndef FORTNITE_REPLAY_UTILS_HPP
 #define FORTNITE_REPLAY_UTILS_HPP
 
-#include "fortnite_replay/event_chunk.hpp"
+#include "fortnite_replay/event.hpp"
 
 namespace fortnite_replay::Utils {
 
