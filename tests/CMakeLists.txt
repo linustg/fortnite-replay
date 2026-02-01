@@ -2,6 +2,7 @@
 add_executable(fortnite_replay_tests
     test_parser.cpp
     test_replay.cpp
+    test_crypto.cpp
 )
 
 # Link with library and Google Test

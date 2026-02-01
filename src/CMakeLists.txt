@@ -2,14 +2,22 @@
 set(LIB_SOURCES
     parser.cpp
     replay.cpp
+    crypto.cpp
     ${CMAKE_SOURCE_DIR}/generated/fortnite_replay.cpp
 )
 
 # Create shared library
 add_library(fortnite_replay SHARED ${LIB_SOURCES})
 
-# Link against kaitai struct runtime
-target_link_libraries(fortnite_replay PUBLIC kaitai_struct_cpp_stl_runtime)
+# Link against kaitai struct runtime and crypto libraries
+target_link_libraries(fortnite_replay
+    PUBLIC
+        kaitai_struct_cpp_stl_runtime
+    PRIVATE
+        OpenSSL::Crypto
+        ZLIB::ZLIB
+        ${CMAKE_DL_LIBS}  # For dlopen/dlsym on Unix
+)
 
 # Include directories
 target_include_directories(fortnite_replay

@@ -32,6 +32,8 @@ enable_testing()
 
 # Find required packages
 find_package(GTest REQUIRED)
+find_package(OpenSSL REQUIRED)
+find_package(ZLIB REQUIRED)
 
 # Fetch Kaitai Struct C++ runtime (using master for C++23 compatibility)
 include(FetchContent)
