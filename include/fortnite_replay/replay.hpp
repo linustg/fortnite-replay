@@ -101,7 +101,7 @@ public:
   /**
    * Get all event chunks
    */
-  std::vector<EventChunk *> event_chunks() const;
+  std::vector<Event *> event_chunks() const;
 
   // ====================================================================
   // ReplayInfo accessors
@@ -132,7 +132,7 @@ public:
   /**
    * @deprecated Use event_chunks() instead
    */
-  std::vector<EventChunk> events() const;
+  std::vector<Event> events() const;
 
   // ====================================================================
   // Convenience accessors

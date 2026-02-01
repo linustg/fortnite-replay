@@ -157,12 +157,12 @@ Get all checkpoint chunks.
 ##### `event_chunks()`
 
 ```cpp
-std::vector<EventChunk*> event_chunks() const;
+std::vector<Event*> event_chunks() const;
 ```
 
 Get all event chunks.
 
-**Returns:** Vector of pointers to `EventChunk` objects
+**Returns:** Vector of pointers to `Event` objects
 
 ##### `chunks_of_type<T>()`
 
@@ -173,13 +173,13 @@ std::vector<T*> chunks_of_type() const;
 
 Get all chunks of a specific type.
 
-**Template Parameter:** Chunk type (e.g., `DataChunk`, `EventChunk`)
+**Template Parameter:** Chunk type (e.g., `DataChunk`, `Event`)
 
 **Returns:** Vector of pointers to chunks of type `T`
 
 **Example:**
 ```cpp
-auto events = replay.chunks_of_type<EventChunk>();
+auto events = replay.chunks_of_type<Event>();
 ```
 
 #### Statistics
@@ -207,7 +207,7 @@ Add a new chunk to the replay.
 
 **Example:**
 ```cpp
-auto& event = replay.add_chunk<EventChunk>();
+auto& event = replay.add_chunk<Event>();
 event.id = "kill_1";
 event.group = "playerElim";
 ```
@@ -304,7 +304,7 @@ ChunkType type() const override;      // Returns ChunkType::Checkpoint
 const char* type_name() const override; // Returns "Checkpoint"
 ```
 
-### `EventChunk`
+### `Event`
 
 Game-specific event (kills, stats, etc.).
 
@@ -525,8 +525,8 @@ void analyze_replay(const std::string& path) {
 
 ```cpp
 // Filter events by type
-std::vector<EventChunk*> get_eliminations(const Replay& replay) {
-    std::vector<EventChunk*> eliminations;
+std::vector<Event*> get_eliminations(const Replay& replay) {
+    std::vector<Event*> eliminations;
 
     for (auto* event : replay.event_chunks()) {
         if (event->group == "playerElim") {
@@ -610,7 +610,7 @@ The library provides backward-compatible accessors:
 std::optional<HeaderChunk> header() const;           // Use header_chunk() instead
 std::vector<DataChunk> data_frames() const;          // Use data_chunks() instead
 std::vector<CheckpointChunk> checkpoints() const;    // Use checkpoint_chunks() instead
-std::vector<EventChunk> events() const;              // Use event_chunks() instead
+std::vector<Event> events() const;              // Use event_chunks() instead
 ```
 
 These return copies rather than pointers. Prefer the pointer-based API for better performance.

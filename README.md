@@ -234,7 +234,7 @@ public:
     HeaderChunk* header_chunk() const;
     std::vector<DataChunk*> data_chunks() const;
     std::vector<CheckpointChunk*> checkpoint_chunks() const;
-    std::vector<EventChunk*> event_chunks() const;
+    std::vector<Event*> event_chunks() const;
 
     // Statistics
     size_t chunk_count() const;
@@ -316,7 +316,7 @@ public:
 };
 
 // Event chunk
-class EventChunk : public Chunk {
+class Event : public Chunk {
 public:
     std::string id;
     std::string group;

@@ -255,7 +255,7 @@ Replay FortniteReplayParser::replay() {
         if (!event_chunk)
           break;
 
-        auto &event = result.add_chunk<EventChunk>();
+        auto &event = result.add_chunk<Event>();
         event.id = extract_fstring(event_chunk->id());
         event.event_type =
             Utils::string_to_event_type(extract_fstring(event_chunk->group()));
@@ -294,7 +294,39 @@ Replay FortniteReplayParser::replay() {
           throw std::runtime_error("Failed to process event chunk data");
         }
         event.data = processed_data_result.value();
-        break;
+
+        switch (event.event_type) {
+        case EventType::PlayerElimination: {
+          // Parse PlayerEliminated event data
+          break;
+        }
+        case EventType::MatchStats: {
+          // Parse MatchStats event data
+          break;
+        }
+        case EventType::TeamStats: {
+          // Parse TeamStats event data
+          break;
+        }
+        case EventType::EncryptionKey: {
+          // Parse EncryptionKey event data
+          break;
+        }
+        case EventType::CharacterSample: {
+          // Parse CharacterSample event data
+          break;
+        }
+        case EventType::ZoneUpdate: {
+          // Parse ZoneUpdate event data
+          break;
+        }
+        case EventType::BattleBus: {
+          // Parse BattleBus event data
+          break;
+        }
+        default:
+          break;
+        }
       }
 
       default:

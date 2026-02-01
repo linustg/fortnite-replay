@@ -33,9 +33,9 @@ enum class EventType {
 /**
  * Event chunk for game-specific events (kills, stats, etc.)
  */
-class EventChunk : public Chunk {
+class Event : public Chunk {
 public:
-  EventChunk() = default;
+  Event() = default;
 
   ChunkType type() const override { return ChunkType::Event; }
   const char *type_name() const override { return "Event"; }
@@ -56,7 +56,7 @@ public:
 };
 
 // Type alias for backward compatibility
-using Event = EventChunk;
+using Event = Event;
 
 } // namespace fortnite_replay
 

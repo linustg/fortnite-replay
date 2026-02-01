@@ -18,8 +18,8 @@ std::vector<CheckpointChunk *> Replay::checkpoint_chunks() const {
   return chunks_of_type<CheckpointChunk>();
 }
 
-std::vector<EventChunk *> Replay::event_chunks() const {
-  return chunks_of_type<EventChunk>();
+std::vector<Event *> Replay::event_chunks() const {
+  return chunks_of_type<Event>();
 }
 
 std::optional<HeaderChunk> Replay::header() const {
@@ -42,8 +42,8 @@ std::vector<CheckpointChunk> Replay::checkpoints() const {
   return result;
 }
 
-std::vector<EventChunk> Replay::events() const {
-  std::vector<EventChunk> result;
+std::vector<Event> Replay::events() const {
+  std::vector<Event> result;
   for (auto *chunk : event_chunks())
     result.push_back(*chunk);
   return result;

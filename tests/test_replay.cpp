@@ -46,7 +46,7 @@ TEST(ChunkTest, CheckpointChunkType) {
 }
 
 TEST(ChunkTest, EventChunkType) {
-  EventChunk chunk;
+  Event chunk;
   EXPECT_EQ(chunk.type(), ChunkType::Event);
   EXPECT_STREQ(chunk.type_name(), "Event");
 }
@@ -56,7 +56,7 @@ TEST(ChunkTest, PolymorphicAccess) {
   chunks.push_back(std::make_unique<HeaderChunk>());
   chunks.push_back(std::make_unique<DataChunk>());
   chunks.push_back(std::make_unique<CheckpointChunk>());
-  chunks.push_back(std::make_unique<EventChunk>());
+  chunks.push_back(std::make_unique<Event>());
 
   EXPECT_EQ(chunks[0]->type(), ChunkType::Header);
   EXPECT_EQ(chunks[1]->type(), ChunkType::ReplayData);
@@ -253,7 +253,7 @@ TEST(ReplayTest, AddEventChunks) {
   Replay replay;
   EXPECT_EQ(replay.event_count(), 0);
 
-  auto &event = replay.add_chunk<EventChunk>();
+  auto &event = replay.add_chunk<Event>();
   event.id = "kill_1";
   event.event_type = EventType::PlayerElimination;
   event.metadata = "HeadShot";
@@ -276,9 +276,9 @@ TEST(ReplayTest, MixedChunkTypes) {
   replay.add_chunk<DataChunk>();
   replay.add_chunk<DataChunk>();
   replay.add_chunk<CheckpointChunk>();
-  replay.add_chunk<EventChunk>();
+  replay.add_chunk<Event>();
   replay.add_chunk<DataChunk>();
-  replay.add_chunk<EventChunk>();
+  replay.add_chunk<Event>();
 
   EXPECT_EQ(replay.chunk_count(), 7);
   EXPECT_EQ(replay.frame_count(), 3);
@@ -292,12 +292,12 @@ TEST(ReplayTest, ChunksOfType) {
 
   replay.add_chunk<HeaderChunk>();
   replay.add_chunk<DataChunk>();
-  replay.add_chunk<EventChunk>();
+  replay.add_chunk<Event>();
   replay.add_chunk<DataChunk>();
 
   auto headers = replay.chunks_of_type<HeaderChunk>();
   auto data = replay.chunks_of_type<DataChunk>();
-  auto events = replay.chunks_of_type<EventChunk>();
+  auto events = replay.chunks_of_type<Event>();
   auto checkpoints = replay.chunks_of_type<CheckpointChunk>();
 
   EXPECT_EQ(headers.size(), 1);
@@ -336,7 +336,7 @@ TEST(ReplayTest, ConstAccessors) {
   replay.info().friendly_name = "Const Test";
   replay.add_chunk<DataChunk>();
   replay.add_chunk<CheckpointChunk>();
-  replay.add_chunk<EventChunk>();
+  replay.add_chunk<Event>();
 
   const Replay &const_replay = replay;
   EXPECT_EQ(const_replay.info().friendly_name, "Const Test");
@@ -395,11 +395,11 @@ TEST(CheckpointChunkTest, DurationMs) {
 }
 
 // ============================================================================
-// EventChunk Tests
+// Event Tests
 // ============================================================================
 
 TEST(EventChunkTest, DefaultConstruction) {
-  EventChunk event;
+  Event event;
   EXPECT_TRUE(event.id.empty());
   EXPECT_EQ(event.event_type, EventType::Unknown);
   EXPECT_TRUE(event.metadata.empty());
@@ -409,7 +409,7 @@ TEST(EventChunkTest, DefaultConstruction) {
 }
 
 TEST(EventChunkTest, DurationMs) {
-  EventChunk event;
+  Event event;
   event.start_time_ms = 10000;
   event.end_time_ms = 10100;
   EXPECT_EQ(event.duration_ms(), 100);

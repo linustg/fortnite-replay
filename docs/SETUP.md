@@ -30,7 +30,7 @@ This document provides an overview of the project's documentation and CI/CD setu
 - **[docs/API.md](API.md)** - Comprehensive API documentation:
   - Parser API (`FortniteReplayParser`)
   - Replay Model API (`Replay`, `ReplayInfo`)
-  - Chunk Types (`HeaderChunk`, `DataChunk`, `CheckpointChunk`, `EventChunk`)
+  - Chunk Types (`HeaderChunk`, `DataChunk`, `CheckpointChunk`, `Event`)
   - Data Structures (`EngineVersion`, `ReplayHeaderFlags`, etc.)
   - Usage examples and best practices
 
