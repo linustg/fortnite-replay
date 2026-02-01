@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include "fortnite_replay/event_chunk.hpp"
 #include "fortnite_replay/replay.hpp"
 #include "fortnite_replay/parser.hpp"
 
@@ -277,7 +278,7 @@ TEST(ReplayTest, AddEventChunks)
 
     auto &event = replay.add_chunk<EventChunk>();
     event.id = "kill_1";
-    event.group = "playerElim";
+    event.event_type = EventType::PlayerElimination;
     event.metadata = "HeadShot";
     event.start_time_ms = 30000;
     event.end_time_ms = 30000;
@@ -287,7 +288,7 @@ TEST(ReplayTest, AddEventChunks)
     auto events = replay.event_chunks();
     EXPECT_EQ(events.size(), 1);
     EXPECT_EQ(events[0]->id, "kill_1");
-    EXPECT_EQ(events[0]->group, "playerElim");
+    EXPECT_EQ(events[0]->event_type, EventType::PlayerElimination);
     EXPECT_EQ(events[0]->metadata, "HeadShot");
 }
 
@@ -434,7 +435,7 @@ TEST(EventChunkTest, DefaultConstruction)
 {
     EventChunk event;
     EXPECT_TRUE(event.id.empty());
-    EXPECT_TRUE(event.group.empty());
+    EXPECT_EQ(event.event_type, EventType::Unknown);
     EXPECT_TRUE(event.metadata.empty());
     EXPECT_EQ(event.start_time_ms, 0);
     EXPECT_EQ(event.end_time_ms, 0);

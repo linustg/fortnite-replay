@@ -10,6 +10,28 @@
 
 namespace fortnite_replay
 {
+    namespace event_type
+    {
+        inline constexpr const char* PLAYER_ELIMINATION = "playerElim";
+        inline constexpr const char* MATCH_STATS = "AthenaMatchStats";
+        inline constexpr const char* TEAM_STATS = "AthenaMatchTeamStats";
+        inline constexpr const char* ENCRYPTION_KEY = "PlayerStateEncryptionKey";
+        inline constexpr const char* CHARACTER_SAMPLE = "CharacterSampleMeta";
+        inline constexpr const char* ZONE_UPDATE = "ZoneUpdate";
+        inline constexpr const char* BATTLE_BUS = "BattleBusFlight";
+    } // namespace event_type
+
+    enum class EventType
+    {
+        PlayerElimination,
+        MatchStats,
+        TeamStats,
+        EncryptionKey,
+        CharacterSample,
+        ZoneUpdate,
+        BattleBus,
+        Unknown
+    };
 
     /**
      * Event chunk for game-specific events (kills, stats, etc.)
@@ -23,7 +45,7 @@ namespace fortnite_replay
         const char *type_name() const override { return "Event"; }
 
         std::string id;
-        std::string group;
+        EventType event_type = EventType::Unknown;
         std::string metadata;
         uint32_t start_time_ms = 0;
         uint32_t end_time_ms = 0;

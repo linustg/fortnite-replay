@@ -1,9 +1,9 @@
 #include <iostream>
 #include <iomanip>
-#include <chrono>
 #include <string>
 #include "fortnite_replay/parser.hpp"
 #include "fortnite_replay/replay.hpp"
+#include "fortnite_replay/utils.hpp"
 
 using namespace fortnite_replay;
 
@@ -233,7 +233,7 @@ void print_events(const Replay& replay)
         const auto* event = events[i];
         std::cout << "  Event " << (i + 1) << ":\n";
         std::cout << "    ID: " << event->id << "\n";
-        std::cout << "    Group: " << event->group << "\n";
+        std::cout << "    Event Type: " << Utils::event_type_to_string(event->event_type) << "\n";
         if (!event->metadata.empty())
         {
             std::cout << "    Metadata: " << event->metadata << "\n";

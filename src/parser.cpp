@@ -1,5 +1,7 @@
 #include "fortnite_replay/parser.hpp"
 #include "fortnite_replay.h"
+#include "fortnite_replay/event_chunk.hpp"
+#include "fortnite_replay/utils.hpp"
 #include <iostream>
 
 namespace fortnite_replay
@@ -282,7 +284,7 @@ namespace fortnite_replay
 
                     auto &event = result.add_chunk<EventChunk>();
                     event.id = extract_fstring(event_chunk->id());
-                    event.group = extract_fstring(event_chunk->group());
+                    event.event_type = Utils::string_to_event_type(extract_fstring(event_chunk->group()));
                     event.metadata = extract_fstring(event_chunk->metadata());
                     event.start_time_ms = event_chunk->start_time();
                     event.end_time_ms = event_chunk->end_time();

@@ -1,8 +1,8 @@
 # Library source files
 set(LIB_SOURCES
+    crypto.cpp
     parser.cpp
     replay.cpp
-    crypto.cpp
     ${CMAKE_SOURCE_DIR}/generated/fortnite_replay.cpp
 )
 
